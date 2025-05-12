@@ -159,6 +159,7 @@ class ReplaceMarkersInDocx:
           after removing any leading or trailing whitespaces.
         """
         replacement_text = str(self.info_dict[marker[1:-1]]).strip()
+        # TODO: remove this and maybe replace it with a 'marker exception' method?
         if marker[1:-1] == 'Document_Number':
             paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             replacement_text = f'\t{replacement_text}'

@@ -1,0 +1,207 @@
+"""
+ReplaceMarkersInDocxAJM.py
+
+*** Overall project description goes here ***
+
+"""
+
+import re
+from abc import abstractmethod
+
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+
+class ReplaceMarkersInDocx:
+    """
+    This code defines a class ReplaceMarkersInDocx with methods to extract and replace markers in a Word document.
+     It includes properties to retrieve mail merge markers and keys,
+     as well as methods for replacing markers in paragraphs and the entire document.
+
+    The mail_merge_markers property extracts markers from the paragraphs of the document and returns them as a set.
+
+    The mail_merge_keys property returns a set of mail merge keys extracted from the mail merge markers.
+
+    The replace_markers method replaces markers in the Word document with values from a dictionary.
+    It handles permission errors during saving and AttributeError if the info_dict attribute is not set or invalid.
+
+    The class assumes the existence of attributes like
+    _mail_merge_markers, U_CODES_MARKERS, Document, and logger for its functioning.
+
+    """
+    U_CODES_MARKERS = {'right': '\u00BB', 'left': '\u00AB'}
+
+    def __init__(self, Document, logger, info_dict: dict = None, **kwargs):
+        self._info_dict = info_dict
+        self._mail_merge_markers = set()
+        self._mail_merge_keys = set()
+        self.Document = Document
+        self._logger = logger
+
+        self.skip_info_validation = kwargs.get('skip_info_validation', False)
+        self._check_main_doc_section_for_markers = kwargs.get('check_main_doc_section_for_markers', True)
+        self._check_header_footer_for_markers = kwargs.get('check_header_footer_for_markers', False)
+
+    @abstractmethod
+    def standardize_paragraph_style(self, paragraph, **kwargs):
+        ...
+
+    @property
+    def info_dict(self):
+        return self._info_dict
+
+    @info_dict.setter
+    def info_dict(self, value):
+        if not self.skip_info_validation:
+            if set(value.keys()) != self.mail_merge_keys:
+                error_message = f"Keys for info_dict must match mail merge keys {self.mail_merge_keys}"
+                self._logger.error(error_message)
+                raise AttributeError(error_message)
+            print("info dict value validated successfully.")
+            self._logger.debug("info dict value validated successfully.")
+        self._info_dict = value
+
+    @staticmethod
+    def _get_header_footer_in_section(section):
+        headers = {x.text.strip()[x.text.strip().index(ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+                                  (x.text.strip().index(
+                                      ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)]
+                   for x in section.header.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
+                   x.text.strip()}
+
+        footers = {x.text.strip()[x.text.strip().index(ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+                                  (x.text.strip().index(
+                                      ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)]
+                   for x in section.footer.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
+                   x.text.strip()}
+        return headers, footers
+
+    def _fetch_mail_merge_markers(self):
+        main_doc = set()
+        header_footer = set()
+
+        if self._check_main_doc_section_for_markers:
+            main_doc = {x.text.strip()[x.text.strip().index(ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+                                       (x.text.strip().index(
+                                           ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)]
+                        for x in self.Document.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
+                        x.text.strip()}
+        if self._check_header_footer_for_markers:
+            for section in self.Document.sections:
+                headers, footers = self._get_header_footer_in_section(section)
+
+                # The |= operator in Python is an in-place union operator used with sets.
+                # It is a shorthand for performing a union operation between sets and
+                # updating the first set with the result of the union.
+                header_footer |= headers
+                header_footer |= footers
+
+        # returns one NEW combined set (unlike |=) above
+        return main_doc | header_footer
+
+    @property
+    def mail_merge_markers(self):
+        """
+        This code defines a property named 'mail_merge_markers' that returns a set of markers extracted from the
+        paragraphs of a document.
+
+        Attributes:
+            - _mail_merge_markers: A private attribute that stores the extracted markers.
+
+        Methods:
+            - mail_merge_markers (): A property getter method that returns the extracted markers.
+
+        Algorithm/Explanation: - The method first checks if the _mail_merge_markers attribute is already populated.
+        If it is, it returns the existing value. - If _mail_merge_markers is empty, the code iterates through all the
+        paragraphs in the 'Document' object. - For each paragraph, it checks if the left marker Unicode character is
+        present in the text. - If the left marker character is found, it extracts the substring between the left and
+        right marker characters, trims any leading or trailing whitespace, and adds it to the set of markers. - The
+        method then returns the set of extracted markers.
+
+        Note:
+            - The code assumes the existence of the following attributes:
+                - _mail_merge_markers: A set to store the extracted markers.
+                - U_CODES_MARKERS: A dictionary containing Unicode characters for left and right markers.
+                - Document: An object representing the document to extract markers from.
+
+        Example usage:
+            # Assuming an instance of the class that contains 'mail_merge_markers' property:
+            obj = MyClass()
+            markers = obj.mail_merge_markers
+            print(markers)  # Output: {'[[', ']]'}
+        """
+        if self._mail_merge_markers:
+            pass
+        else:
+            self._mail_merge_markers = self._fetch_mail_merge_markers()
+        return self._mail_merge_markers
+
+    @property
+    def mail_merge_keys(self):
+        """
+        Returns a set of mail merge keys.
+
+        If the `mail_merge_markers` attribute is not empty, this method extracts the keys from it and returns a set
+        containing them.
+
+        Returns:
+            set: A set of mail merge keys extracted from `mail_merge_markers` attribute.
+
+        """
+        if self.mail_merge_markers:
+            return {x[1:-1] for x in self.mail_merge_markers}
+
+    def _replace_matched_marker(self, paragraph, marker, marker_pattern):
+        """
+        Replace the text matched with the marker in the paragraph using the information from the info dictionary.
+         If the marker corresponds to 'Document_Number', set the alignment of the paragraph to center and prepend a tab
+          to the replacement text.
+          Finally, update the paragraph text by substituting the marker with the replacement text
+          after removing any leading or trailing whitespaces.
+        """
+        replacement_text = str(self.info_dict[marker[1:-1]]).strip()
+        if marker[1:-1] == 'Document_Number':
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            replacement_text = f'\t{replacement_text}'
+        # adding str.strip() to replacement_text and p.text
+        # removed the erroneous whitespace in the output doc
+        paragraph.text = re.sub(marker_pattern, replacement_text.strip(), paragraph.text.strip())
+
+    def _replace_markers_in_paragraph(self, paragraph):
+        paragraph_replacement_counter = 0
+        for marker in self.mail_merge_markers:
+            marker_pattern = re.escape(marker)
+            if re.search(marker_pattern, paragraph.text):
+                self.standardize_paragraph_style(paragraph, only_font=True)
+                self._replace_matched_marker(paragraph, marker, marker_pattern)
+                paragraph_replacement_counter += 1
+
+        return paragraph_replacement_counter
+
+    def replace_markers(self, **kwargs):
+        """
+        This method is used to replace markers in a given Word document with the corresponding values from a dictionary.
+
+        Parameters:
+        - None
+
+        Returns:
+        - None
+
+        Exceptions:
+        - PermissionError: if there is a permission error while saving the document
+        - AttributeError: if self.employee_id is not set or is invalid
+
+        """
+        paragraphs = kwargs.get('paragraphs', self.Document.paragraphs)
+        if self.info_dict:
+            replacement_counter = 0
+            for p in paragraphs:
+                # Find and replace markers within the paragraph
+                pr_counter = self._replace_markers_in_paragraph(p)
+                replacement_counter += pr_counter
+            info_str = f'{replacement_counter} marker(s) replaced in {self.Document}.'
+            # TODO: add verbose mode where this is printed
+            # print(info_str)
+            self._logger.info(info_str)
+        else:
+            raise AttributeError('self.info_dict is empty. This method can only be used if the info_dict is not empty.')

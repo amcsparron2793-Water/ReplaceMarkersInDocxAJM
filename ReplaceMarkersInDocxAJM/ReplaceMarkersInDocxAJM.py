@@ -70,10 +70,22 @@ class ReplaceMarkersInDocx:
 
     @abstractmethod
     def standardize_paragraph_style(self, paragraph, **kwargs):
+        """
+        :param paragraph: The paragraph to be standardized in terms of style.
+        :type paragraph: str
+        :param kwargs: Optional keyword arguments for customizing the standardization process.
+        :type kwargs: dict
+        :return: This method is abstract and must be implemented in a subclass.
+        :rtype: None
+        """
         raise NotImplementedError('This method needs to be implemented in a subclass')
 
     @property
     def info_dict(self):
+        """
+        :return: The getter method for accessing the information dictionary.
+        :rtype: dict
+        """
         return self._info_dict
 
     @info_dict.setter
@@ -238,8 +250,6 @@ class ReplaceMarkersInDocx:
                 pr_counter = self._replace_markers_in_paragraph(p)
                 replacement_counter += pr_counter
             info_str = f'{replacement_counter} marker(s) replaced in {self.Document}.'
-            # TODO: add verbose mode where this is printed
-            # print(info_str)
             self._logger.info(info_str)
         else:
             raise AttributeError('self.info_dict is empty. This method can only be used if the info_dict is not empty.')

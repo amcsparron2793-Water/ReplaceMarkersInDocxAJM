@@ -179,6 +179,18 @@ class ReplaceMarkersInDocx:
         if self.mail_merge_markers:
             return {x[1:-1] for x in self.mail_merge_markers}
 
+    @staticmethod
+    def _handle_marker_edge_case(marker, paragraph, replacement_text):
+        # noinspection GrazieInspection
+        """designed to be overwritten, Used for handling markers that need some other processing,
+                not just a simple replacement (i.e. paragraph alignment etc.).
+
+                ex:          if marker[1:-1] == 'Document_Number':
+                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    replacement_text = f'\t{replacement_text}'
+                """
+        return replacement_text, paragraph
+
     def _replace_matched_marker(self, paragraph, marker, marker_pattern):
         """
         Replace the text matched with the marker in the paragraph using the information from the info dictionary.
@@ -188,10 +200,7 @@ class ReplaceMarkersInDocx:
           after removing any leading or trailing whitespaces.
         """
         replacement_text = str(self.info_dict[marker[1:-1]]).strip()
-        # TODO: remove this and maybe replace it with a 'marker exception' method?
-        if marker[1:-1] == 'Document_Number':
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            replacement_text = f'\t{replacement_text}'
+        replacement_text, paragraph = self._handle_marker_edge_case(marker, paragraph, replacement_text)
         # adding str.strip() to replacement_text and p.text
         # removed the erroneous whitespace in the output doc
         paragraph.text = re.sub(marker_pattern, replacement_text.strip(), paragraph.text.strip())

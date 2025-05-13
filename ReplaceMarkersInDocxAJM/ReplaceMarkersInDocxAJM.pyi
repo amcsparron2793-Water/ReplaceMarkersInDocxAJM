@@ -36,6 +36,11 @@ class ReplaceMarkersInDocx:
     def mail_merge_keys(self) -> dict:
         ...
 
+    @staticmethod
+    def _handle_marker_edge_case(marker, paragraph: docx.text.Paragraph,
+                                 replacement_text: str) -> Tuple[str, docx.text.Paragraph]:
+        ...
+
     def _replace_matched_marker(self, paragraph:docx.text.Paragraph, marker:str, marker_pattern:Pattern):
         ...
 

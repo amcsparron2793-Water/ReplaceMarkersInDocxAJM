@@ -37,8 +37,6 @@ This module is commonly used to replace placeholders in document templates such 
 import re
 from abc import abstractmethod
 
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-
 
 class ReplaceMarkersInDocx:
     """
@@ -178,6 +176,7 @@ class ReplaceMarkersInDocx:
         """
         if self.mail_merge_markers:
             return {x[1:-1] for x in self.mail_merge_markers}
+        return set()
 
     @staticmethod
     def _handle_marker_edge_case(marker, paragraph, replacement_text):

@@ -70,7 +70,7 @@ class ReplaceMarkersInDocx:
 
     @abstractmethod
     def standardize_paragraph_style(self, paragraph, **kwargs):
-        ...
+        raise NotImplementedError('This method needs to be implemented in a subclass')
 
     @property
     def info_dict(self):

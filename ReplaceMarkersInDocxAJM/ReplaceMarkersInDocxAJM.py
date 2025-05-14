@@ -61,7 +61,7 @@ class ReplaceMarkersInDocx:
         self._info_dict = info_dict
         self._mail_merge_markers = set()
         self._mail_merge_keys = set()
-        self.document = document
+        self.Document = document
         self._logger = logger
 
         self.skip_info_validation = kwargs.get('skip_info_validation', False)
@@ -122,10 +122,10 @@ class ReplaceMarkersInDocx:
             main_doc = {x.text.strip()[x.text.strip().index(ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
                                        (x.text.strip().index(
                                            ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)]
-                        for x in self.document.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
+                        for x in self.Document.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
                         x.text.strip()}
         if self._check_header_footer_for_markers:
-            for section in self.document.sections:
+            for section in self.Document.sections:
                 headers, footers = self._get_header_footer_in_section(section)
 
                 # The |= operator in Python is an in-place union operator used with sets.
@@ -242,14 +242,14 @@ class ReplaceMarkersInDocx:
         - AttributeError: if self.employee_id is not set or is invalid
 
         """
-        paragraphs = kwargs.get('paragraphs', self.document.paragraphs)
+        paragraphs = kwargs.get('paragraphs', self.Document.paragraphs)
         if self.info_dict:
             replacement_counter = 0
             for p in paragraphs:
                 # Find and replace markers within the paragraph
                 pr_counter = self._replace_markers_in_paragraph(p)
                 replacement_counter += pr_counter
-            info_str = f'{replacement_counter} marker(s) replaced in {self.document}.'
+            info_str = f'{replacement_counter} marker(s) replaced in {self.Document}.'
             self._logger.info(info_str)
         else:
             raise AttributeError('self.info_dict is empty. This method can only be used if the info_dict is not empty.')

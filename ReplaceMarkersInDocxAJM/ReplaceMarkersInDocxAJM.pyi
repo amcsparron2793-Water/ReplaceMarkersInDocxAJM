@@ -7,11 +7,11 @@ import docx
 
 class ReplaceMarkersInDocx:
     U_CODES_MARKERS:dict = None
-    def __init__(self, Document: docx.Document, logger, info_dict:dict = None, **kwargs):
+    def __init__(self, document: docx.Document, logger, info_dict:dict = None, **kwargs):
         self.info_dict = info_dict
         self._mail_merge_markers: Optional[set] = None
         self._mail_merge_keys: Optional[set] = None
-        self.Document = Document
+        self.document = document
         self._logger = logger
         self._check_main_doc_section_for_markers: bool = None
         self._check_header_footer_for_markers: bool = None

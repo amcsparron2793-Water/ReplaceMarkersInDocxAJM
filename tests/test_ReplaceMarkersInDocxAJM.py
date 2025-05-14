@@ -2,10 +2,10 @@ import unittest
 
 import mock
 from ReplaceMarkersInDocxAJM.ReplaceMarkersInDocxAJM import ReplaceMarkersInDocx
-
+import re
 
 class ReplaceMarkersInDocxTest(unittest.TestCase):
-    info_dict = {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}
+    info_dict = {'key1': 'value1', 'key2': 'value2', 'key3': 'value3', 'test': 'replacement_text'}
     Document = mock.MagicMock()
     logger = mock.MagicMock()
 
@@ -51,8 +51,8 @@ class ReplaceMarkersInDocxTest(unittest.TestCase):
             patched_sub.return_value = replaced_text
             paragraph = mock.MagicMock()
             paragraph.text = "This is a test"
-            marker = "test"
-            marker_pattern = "\u00BBtest\u00AB"
+            marker = "\u00ABtest\u00BB"
+            marker_pattern = re.escape(marker)
             self.replaceMarkersInDocx._replace_matched_marker(paragraph, marker, marker_pattern)
             self.assertEqual(paragraph.text, replaced_text)
 

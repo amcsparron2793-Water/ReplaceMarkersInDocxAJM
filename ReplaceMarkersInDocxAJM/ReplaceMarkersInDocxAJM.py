@@ -52,16 +52,16 @@ class ReplaceMarkersInDocx:
     It handles permission errors during saving and AttributeError if the info_dict attribute is not set or invalid.
 
     The class assumes the existence of attributes like
-    _mail_merge_markers, U_CODES_MARKERS, Document, and logger for its functioning.
+    _mail_merge_markers, U_CODES_MARKERS, document, and logger for its functioning.
 
     """
     U_CODES_MARKERS = {'right': '\u00BB', 'left': '\u00AB'}
 
-    def __init__(self, Document, logger, info_dict: dict = None, **kwargs):
+    def __init__(self, document, logger, info_dict: dict = None, **kwargs):
         self._info_dict = info_dict
         self._mail_merge_markers = set()
         self._mail_merge_keys = set()
-        self.Document = Document
+        self.document = document
         self._logger = logger
 
         self.skip_info_validation = kwargs.get('skip_info_validation', False)
@@ -122,10 +122,10 @@ class ReplaceMarkersInDocx:
             main_doc = {x.text.strip()[x.text.strip().index(ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
                                        (x.text.strip().index(
                                            ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)]
-                        for x in self.Document.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
+                        for x in self.document.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
                         x.text.strip()}
         if self._check_header_footer_for_markers:
-            for section in self.Document.sections:
+            for section in self.document.sections:
                 headers, footers = self._get_header_footer_in_section(section)
 
                 # The |= operator in Python is an in-place union operator used with sets.
@@ -151,7 +151,7 @@ class ReplaceMarkersInDocx:
 
         Algorithm/Explanation: - The method first checks if the _mail_merge_markers attribute is already populated.
         If it is, it returns the existing value. - If _mail_merge_markers is empty, the code iterates through all the
-        paragraphs in the 'Document' object. - For each paragraph, it checks if the left marker Unicode character is
+        paragraphs in the 'document' object. - For each paragraph, it checks if the left marker Unicode character is
         present in the text. - If the left marker character is found, it extracts the substring between the left and
         right marker characters, trims any leading or trailing whitespace, and adds it to the set of markers. - The
         method then returns the set of extracted markers.
@@ -160,7 +160,7 @@ class ReplaceMarkersInDocx:
             - The code assumes the existence of the following attributes:
                 - _mail_merge_markers: A set to store the extracted markers.
                 - U_CODES_MARKERS: A dictionary containing Unicode characters for left and right markers.
-                - Document: An object representing the document to extract markers from.
+                - document: An object representing the document to extract markers from.
 
         Example usage:
             # Assuming an instance of the class that contains 'mail_merge_markers' property:
@@ -242,14 +242,14 @@ class ReplaceMarkersInDocx:
         - AttributeError: if self.employee_id is not set or is invalid
 
         """
-        paragraphs = kwargs.get('paragraphs', self.Document.paragraphs)
+        paragraphs = kwargs.get('paragraphs', self.document.paragraphs)
         if self.info_dict:
             replacement_counter = 0
             for p in paragraphs:
                 # Find and replace markers within the paragraph
                 pr_counter = self._replace_markers_in_paragraph(p)
                 replacement_counter += pr_counter
-            info_str = f'{replacement_counter} marker(s) replaced in {self.Document}.'
+            info_str = f'{replacement_counter} marker(s) replaced in {self.document}.'
             self._logger.info(info_str)
         else:
             raise AttributeError('self.info_dict is empty. This method can only be used if the info_dict is not empty.')

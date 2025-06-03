@@ -99,38 +99,36 @@ class ReplaceMarkersInDocx:
             self._logger.debug("info dict value validated successfully.")
         self._info_dict = value
 
-    @staticmethod
-    def _get_header_footer_in_section(section):
-        headers = {x.text.strip()[x.text.strip().index(ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+    def _get_header_footer_in_section(self, section):
+        headers = {x.text.strip()[x.text.strip().index(self.__class__.U_CODES_MARKERS['left']):
                                   (x.text.strip().index(
-                                      ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)]
-                   for x in section.header.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
+                                      self.__class__.U_CODES_MARKERS['right']) + 1)]
+                   for x in section.header.paragraphs if self.__class__.U_CODES_MARKERS['left'] in
                    x.text.strip()}
 
-        footers = {x.text.strip()[x.text.strip().index(ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+        footers = {x.text.strip()[x.text.strip().index(self.__class__.U_CODES_MARKERS['left']):
                                   (x.text.strip().index(
-                                      ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)]
-                   for x in section.footer.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
+                                      self.__class__.U_CODES_MARKERS['right']) + 1)]
+                   for x in section.footer.paragraphs if self.__class__.U_CODES_MARKERS['left'] in
                    x.text.strip()}
         return headers, footers
 
-    @staticmethod
-    def _multi_marker_line(para):
+    def _multi_marker_line(self, para):
         found_markers = []
-        if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in para.text.strip():
+        if self.__class__.U_CODES_MARKERS['left'] in para.text.strip():
             found_markers.append(para.text.strip()[para.text.strip().index(
-                ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+                self.__class__.U_CODES_MARKERS['left']):
                                                    (para.text.strip().index(
-                                                       ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)])
+                                                       self.__class__.U_CODES_MARKERS['right']) + 1)])
 
             remaining_text = para.text.strip()[para.text.strip().index(
-                ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1:]
-            if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in remaining_text:
+                self.__class__.U_CODES_MARKERS['right']) + 1:]
+            if self.__class__.U_CODES_MARKERS['left'] in remaining_text:
                 found_markers.append(remaining_text.strip()[
                                      remaining_text.strip().index(
-                                         ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+                                         self.__class__.U_CODES_MARKERS['left']):
                                      (remaining_text.strip().index(
-                                         ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)])
+                                         self.__class__.U_CODES_MARKERS['right']) + 1)])
         return found_markers
 
     def _fetch_mail_merge_markers(self):

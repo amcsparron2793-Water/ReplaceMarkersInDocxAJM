@@ -8,16 +8,26 @@ import docx
 class ReplaceMarkersInDocx:
     U_CODES_MARKERS:dict = None
     def __init__(self, document: docx.Document, logger, info_dict:dict = None, **kwargs):
-        self.info_dict = info_dict
+        self._info_dict = info_dict
         self._mail_merge_markers: Optional[set] = None
         self._mail_merge_keys: Optional[set] = None
         self.document = document
         self._logger = logger
         self._check_main_doc_section_for_markers: bool = None
         self._check_header_footer_for_markers: bool = None
+        self.skip_info_validation: bool = None
 
     @abstractmethod
     def standardize_paragraph_style(self, paragraph:docx.text.Paragraph, **kwargs):
+        ...
+
+    @property
+    def info_dict(self):
+        ...
+
+    # noinspection PyUnresolvedReferences
+    @info_dict.setter
+    def info_dict(self, value):
         ...
 
     @staticmethod
@@ -26,7 +36,6 @@ class ReplaceMarkersInDocx:
 
     def _fetch_mail_merge_markers(self) -> dict:
         ...
-
 
     @property
     def mail_merge_markers(self) -> dict:

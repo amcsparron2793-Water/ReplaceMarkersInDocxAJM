@@ -114,16 +114,35 @@ class ReplaceMarkersInDocx:
                    x.text.strip()}
         return headers, footers
 
+    @staticmethod
+    def _multi_marker_line(para):
+        found_markers = []
+        if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in para.text.strip():
+            found_markers.append(para.text.strip()[para.text.strip().index(
+                ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+                                                   (para.text.strip().index(
+                                                       ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)])
+
+            remaining_text = para.text.strip()[para.text.strip().index(
+                ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1:]
+            if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in remaining_text:
+                found_markers.append(remaining_text.strip()[
+                                     remaining_text.strip().index(
+                                         ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
+                                     (remaining_text.strip().index(
+                                         ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)])
+        return found_markers
+
     def _fetch_mail_merge_markers(self):
         main_doc = set()
         header_footer = set()
 
         if self._check_main_doc_section_for_markers:
-            main_doc = {x.text.strip()[x.text.strip().index(ReplaceMarkersInDocx.U_CODES_MARKERS['left']):
-                                       (x.text.strip().index(
-                                           ReplaceMarkersInDocx.U_CODES_MARKERS['right']) + 1)]
-                        for x in self.Document.paragraphs if ReplaceMarkersInDocx.U_CODES_MARKERS['left'] in
-                        x.text.strip()}
+            main_doc = {tuple(self._multi_marker_line(x)) for x in self.Document.paragraphs}
+            p1 = {x[0] for x in main_doc if x}
+            p2 = {x[1] for x in main_doc if x and len(x) == 2}
+            main_doc = p1 | p2
+        # TODO: make this match above so that multi marker lines work properly
         if self._check_header_footer_for_markers:
             for section in self.Document.sections:
                 headers, footers = self._get_header_footer_in_section(section)

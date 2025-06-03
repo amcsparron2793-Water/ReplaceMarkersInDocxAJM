@@ -34,6 +34,10 @@ class ReplaceMarkersInDocx:
     def _get_header_footer_in_section(section: docx.text.Section) -> Tuple[set, set]:
         ...
 
+    @staticmethod
+    def _multi_marker_line(para: docx.text.Paragraph) -> list:
+        ...
+
     def _fetch_mail_merge_markers(self) -> dict:
         ...
 

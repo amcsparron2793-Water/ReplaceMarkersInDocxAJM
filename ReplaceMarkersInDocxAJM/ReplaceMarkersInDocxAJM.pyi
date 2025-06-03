@@ -22,7 +22,7 @@ class ReplaceMarkersInDocx:
         ...
 
     @property
-    def info_dict(self):
+    def info_dict(self) -> dict:
         ...
 
     # noinspection PyUnresolvedReferences
@@ -33,6 +33,8 @@ class ReplaceMarkersInDocx:
     def _get_header_footer_in_section(self, section: docx.text.Section) -> Tuple[set, set]:
         ...
 
+    def _get_main_doc_section_mail_markers(self) -> set:
+        ...
 
     def _multi_marker_line(self, para: docx.text.Paragraph) -> list:
         ...

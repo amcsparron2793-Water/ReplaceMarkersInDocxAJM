@@ -100,18 +100,20 @@ class ReplaceMarkersInDocx:
         self._info_dict = value
 
     def _get_header_footer_in_section(self, section):
-        headers = {x.text.strip()[x.text.strip().index(self.__class__.U_CODES_MARKERS['left']):
-                                  (x.text.strip().index(
-                                      self.__class__.U_CODES_MARKERS['right']) + 1)]
-                   for x in section.header.paragraphs if self.__class__.U_CODES_MARKERS['left'] in
-                   x.text.strip()}
+        headers = []
+        footers = []
+        for x in section.header.paragraphs:
+            headers.extend(self._multi_marker_line(x))
+        for x in section.footer.paragraphs:
+            footers.extend(self._multi_marker_line(x))
+        return set(headers), set(footers)
 
-        footers = {x.text.strip()[x.text.strip().index(self.__class__.U_CODES_MARKERS['left']):
-                                  (x.text.strip().index(
-                                      self.__class__.U_CODES_MARKERS['right']) + 1)]
-                   for x in section.footer.paragraphs if self.__class__.U_CODES_MARKERS['left'] in
-                   x.text.strip()}
-        return headers, footers
+    def _get_main_doc_section_mail_markers(self):
+        main_doc = {tuple(self._multi_marker_line(x)) for x in self.Document.paragraphs}
+        p1 = {x[0] for x in main_doc if x}
+        p2 = {x[1] for x in main_doc if x and len(x) == 2}
+        main_doc = p1 | p2
+        return main_doc
 
     def _multi_marker_line(self, para):
         found_markers = []
@@ -136,11 +138,7 @@ class ReplaceMarkersInDocx:
         header_footer = set()
 
         if self._check_main_doc_section_for_markers:
-            main_doc = {tuple(self._multi_marker_line(x)) for x in self.Document.paragraphs}
-            p1 = {x[0] for x in main_doc if x}
-            p2 = {x[1] for x in main_doc if x and len(x) == 2}
-            main_doc = p1 | p2
-        # TODO: make this match above so that multi marker lines work properly
+            main_doc = self._get_main_doc_section_mail_markers()
         if self._check_header_footer_for_markers:
             for section in self.Document.sections:
                 headers, footers = self._get_header_footer_in_section(section)
@@ -246,7 +244,8 @@ class ReplaceMarkersInDocx:
 
     def replace_markers(self, **kwargs):
         """
-        This method is used to replace markers in a given Word document with the corresponding values from a dictionary.
+        This method is used to replace markers in a given Word document's
+        main body (by default) with the corresponding values from a dictionary.
 
         Parameters:
         - None
@@ -270,3 +269,14 @@ class ReplaceMarkersInDocx:
             self._logger.info(info_str)
         else:
             raise AttributeError('self.info_dict is empty. This method can only be used if the info_dict is not empty.')
+
+    def replace_all_markers(self):
+        """
+        Method to replace all markers within the document including the headers and footers.
+        Iterates through each section in the document and replaces markers in
+        the section's header and footer paragraphs as well.
+        """
+        self.replace_markers()
+        for section in self.Document.sections:
+            self.replace_markers(paragraphs=section.header.paragraphs)
+            self.replace_markers(paragraphs=section.footer.paragraphs)

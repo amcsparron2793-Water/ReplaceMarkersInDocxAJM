@@ -36,6 +36,8 @@ This module is commonly used to replace placeholders in document templates such 
 
 import re
 from abc import abstractmethod
+from ast import literal_eval
+from typing import List
 
 
 class ReplaceMarkersInDocx:
@@ -214,6 +216,9 @@ class ReplaceMarkersInDocx:
                 ex:          if marker[1:-1] == 'Document_Number':
                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     replacement_text = f'\t{replacement_text}'
+
+                if marker[1:-1] == 'DamUpdateTable':
+                    replacement_text, paragraph = self._handle_table_replacement(replacement_text, paragraph)
                 """
         return replacement_text, paragraph
 
@@ -280,3 +285,150 @@ class ReplaceMarkersInDocx:
         for section in self.Document.sections:
             self.replace_markers(paragraphs=section.header.paragraphs)
             self.replace_markers(paragraphs=section.footer.paragraphs)
+
+
+# TODO: should this subclass ReplaceMarkersInDocx? or make it a part of ReplaceMarkersInDocx?
+class TableReplace(ReplaceMarkersInDocx):
+    """
+    class TableReplace(ReplaceMarkersInDocx):
+        Represents a class that handles table replacements in a docx document,
+         extending functionality from ReplaceMarkersInDocx.
+         Includes methods to manage table data, manipulate paragraphs, and standardize styles.
+
+        @abstractmethod
+        def standardize_paragraph_style(self, paragraph, **kwargs):
+            Abstract method for standardizing the style of a paragraph. Must be implemented in a subclass.
+
+            :param paragraph: The paragraph to be standardized in terms of style.
+            :type paragraph: str
+            :param kwargs: Optional keyword arguments for customizing the standardization process.
+            :type kwargs: dict
+            :return: This method is abstract and must be implemented in a subclass.
+            :rtype: None
+
+        @classmethod
+        def _flatten_data_for_table(cls, data_string) -> List[List[str]]:
+            Converts input data in string format to a list of lists for use in table population.
+
+            :param data_string: A string containing table data, expected to represent a list of dictionaries.
+            :type data_string: str
+            :raises ValueError: If input is not a list of dictionaries.
+            :return: A list of lists, where the first sublist represents column headers and subsequent sublists represent table rows.
+            :rtype: List[List[str]]
+
+        @classmethod
+        def _populate_table(cls, data: List[List[str]], table: 'Table'):
+            Populates a docx table with data provided as a list of lists. Each inner list represents a row of the table.
+
+            :param data: Data to populate the table, structured as a list of lists.
+            :type data: List[List[str]]
+            :param table: An instance of docx.Table to be populated.
+            :type table: Table
+            :return: The populated table object.
+            :rtype: Table
+
+        @classmethod
+        def _remove_element_manual(cls, paragraph):
+            Removes the specified paragraph element manually from the document.
+
+            :param paragraph: The paragraph object to be removed.
+            :type paragraph: Paragraph
+            :return: None
+            :rtype: None
+
+        def _handle_table_replacement(self, replacement_text, paragraph):
+            Handles the replacement of a marker with a table within the document.
+            Parses the replacement text into a table, removes the placeholder paragraph, and adds the new table.
+
+            :param replacement_text: The text to be replaced, containing table data.
+            :type replacement_text: str or list
+            :param paragraph: The placeholder paragraph being replaced.
+            :type paragraph: Paragraph
+            :return: Updated replacement text (table) and paragraph (set to None).
+            :rtype: Tuple[Table, None]
+
+        def _replace_matched_marker(self, paragraph, marker, marker_pattern):
+            Replaces a matched marker in a paragraph with appropriate text or elements.
+            Includes special handling for specific types of markers such as 'Document_Number'.
+
+            :param paragraph: The paragraph containing the marker to be replaced.
+            :type paragraph: Paragraph
+            :param marker: The marker string matched in the paragraph text.
+            :type marker: str
+            :param marker_pattern: Regex pattern used"""
+
+    @abstractmethod
+    def standardize_paragraph_style(self, paragraph, **kwargs):
+        """
+        :param paragraph: The paragraph to be standardized in terms of style.
+        :type paragraph: str
+        :param kwargs: Optional keyword arguments for customizing the standardization process.
+        :type kwargs: dict
+        :return: This method is abstract and must be implemented in a subclass.
+        :rtype: None
+        """
+        raise NotImplementedError('This method needs to be implemented in a subclass')
+
+    @classmethod
+    def _flatten_data_for_table(cls, data_string) -> List[List[str]]:
+        data = []
+        # THIS IS CONFIRMED TO WORK WITH A BLANK DOCUMENT
+        if isinstance(data_string, list) or list(data_string):
+            data_list_dict = literal_eval(data_string)
+            data.append(list(data_list_dict[0].keys()))
+            for line in data_list_dict:
+                data.append(list(line.values()))
+        else:
+            raise ValueError(f'replacement text for DamUpdateTable '
+                             f'must be a list of dictionaries not {type(data_string)}')
+
+        return data
+
+    @classmethod
+    def _populate_table(cls, data: List[List[str]], table: 'Table'):
+        # THIS IS CONFIRMED TO WORK WITH A BLANK DOCUMENT
+        for row_index, row_content in enumerate(data):
+            for col_index, cell_content in enumerate(row_content):
+                table.cell(row_index, col_index).text = cell_content
+                # print(table.cell(row_index, col_index).text, cell_content)
+        return table
+
+    @classmethod
+    def _remove_element_manual(cls, paragraph):
+        parent_element = paragraph._element
+
+        # Remove the current placeholder paragraph
+        parent_element.getparent().remove(parent_element)
+        parent_element._p = parent_element._element = None
+
+    def _handle_table_replacement(self, replacement_text, paragraph):
+        data = self._flatten_data_for_table(replacement_text)
+        self._remove_element_manual(paragraph)
+        # FIXME: this works fine, but the table is placed in the incorrect spot...
+        blank_table = self.Document.add_table(cols=3, rows=len(data) + 1, style='Table Grid')
+        self._logger.warning("it is possible that the table was added to the end of the document,"
+                             " not in its markers place...")
+
+        table = self._populate_table(data, blank_table)
+        replacement_text = table
+        paragraph = None
+        return replacement_text, paragraph
+
+    def _replace_matched_marker(self, paragraph, marker, marker_pattern):
+        """
+        Replace the text matched with the marker in the paragraph using the information from the info dictionary.
+         If the marker corresponds to 'Document_Number', set the alignment of the paragraph to center and prepend a tab
+          to the replacement text.
+          Finally, update the paragraph text by substituting the marker with the replacement text
+          after removing any leading or trailing whitespaces.
+        """
+        replacement_text = str(self.info_dict[marker[1:-1]]).strip()
+        replacement_text, paragraph = self._handle_marker_edge_case(marker, paragraph, replacement_text)
+        # adding str.strip() to replacement_text and p.text
+        # removed the erroneous whitespace in the output doc
+        # FIXME: how to implement this without needing to import docx.Table
+        # if isinstance(replacement_text, Table):
+        #     self._logger.debug('table handled through edge_case')
+        #     # paragraph.text = sub(marker_pattern, replacement_text, paragraph.text.strip())
+        # else:
+        paragraph.text = re.sub(marker_pattern, replacement_text.strip(), paragraph.text.strip())

@@ -290,72 +290,33 @@ class ReplaceMarkersInDocx:
 # TODO: should this subclass ReplaceMarkersInDocx? or make it a part of ReplaceMarkersInDocx?
 class ReplaceMarkersWithTable(ReplaceMarkersInDocx):
     """
-    class ReplaceMarkersWithTable(ReplaceMarkersInDocx):
-        Represents a class that handles table replacements in a docx document,
-         extending functionality from ReplaceMarkersInDocx.
-         Includes methods to manage table data, manipulate paragraphs, and standardize styles.
+    ReplaceMarkersWithTable is a subclass of ReplaceMarkersInDocx that extends functionality to handle markers and replace them with formatted tables in a Word document.
 
-        @abstractmethod
-        def standardize_paragraph_style(self, paragraph, **kwargs):
-            Abstract method for standardizing the style of a paragraph. Must be implemented in a subclass.
+    Methods:
 
-            :param paragraph: The paragraph to be standardized in terms of style.
-            :type paragraph: str
-            :param kwargs: Optional keyword arguments for customizing the standardization process.
-            :type kwargs: dict
-            :return: This method is abstract and must be implemented in a subclass.
-            :rtype: None
+    standardize_paragraph_style(paragraph, **kwargs)
+        Abstract method to standardize the style of a given paragraph.
 
-        @classmethod
-        def _flatten_data_for_table(cls, data_string) -> List[List[str]]:
-            Converts input data in string format to a list of lists for use in table population.
+    _flatten_data_for_table(data_string)
+        Converts a string representation of a list of dictionaries into a two-dimensional list (table).
+        This is a private method to format data for table population.
 
-            :param data_string: A string containing table data, expected to represent a list of dictionaries.
-            :type data_string: str
-            :raises ValueError: If input is not a list of dictionaries.
-            :return: A list of lists, where the first sublist represents column headers and subsequent sublists represent table rows.
-            :rtype: List[List[str]]
+    _populate_table(data, table)
+        Populates a Word table object with data provided as a two-dimensional list.
+        Internal utility method for managing table content.
 
-        @classmethod
-        def _populate_table(cls, data: List[List[str]], table: 'Table'):
-            Populates a docx table with data provided as a list of lists. Each inner list represents a row of the table.
+    _remove_element_manual(paragraph)
+        Removes a specified paragraph element manually from the document structure.
+        This is used to clear placeholder text or markers before adding tables.
 
-            :param data: Data to populate the table, structured as a list of lists.
-            :type data: List[List[str]]
-            :param table: An instance of docx.Table to be populated.
-            :type table: Table
-            :return: The populated table object.
-            :rtype: Table
+    _handle_table_replacement(replacement_text, paragraph, **kwargs)
+        Handles replacing a marker in a paragraph with a table.
+        Prepares and inserts a table into the document, adjusting its style and placement according to given parameters.
 
-        @classmethod
-        def _remove_element_manual(cls, paragraph):
-            Removes the specified paragraph element manually from the document.
-
-            :param paragraph: The paragraph object to be removed.
-            :type paragraph: Paragraph
-            :return: None
-            :rtype: None
-
-        def _handle_table_replacement(self, replacement_text, paragraph):
-            Handles the replacement of a marker with a table within the document.
-            Parses the replacement text into a table, removes the placeholder paragraph, and adds the new table.
-
-            :param replacement_text: The text to be replaced, containing table data.
-            :type replacement_text: str or list
-            :param paragraph: The placeholder paragraph being replaced.
-            :type paragraph: Paragraph
-            :return: Updated replacement text (table) and paragraph (set to None).
-            :rtype: Tuple[Table, None]
-
-        def _replace_matched_marker(self, paragraph, marker, marker_pattern):
-            Replaces a matched marker in a paragraph with appropriate text or elements.
-            Includes special handling for specific types of markers such as 'Document_Number'.
-
-            :param paragraph: The paragraph containing the marker to be replaced.
-            :type paragraph: Paragraph
-            :param marker: The marker string matched in the paragraph text.
-            :type marker: str
-            :param marker_pattern: Regex pattern used"""
+    _replace_matched_marker(paragraph, marker, marker_pattern)
+        Matches a marker within a paragraph and replaces it with its corresponding replacement text.
+        Uses regular expressions to identify and substitute the marker, with additional handling for edge cases like tables.
+    """
 
     @abstractmethod
     def standardize_paragraph_style(self, paragraph, **kwargs):
@@ -371,6 +332,15 @@ class ReplaceMarkersWithTable(ReplaceMarkersInDocx):
 
     @classmethod
     def _flatten_data_for_table(cls, data_string) -> List[List[str]]:
+        """
+        :param data_string: A string that represents a serialized list of dictionaries.
+                            Each dictionary represents a row in the table, and the dictionary keys represent the columns.
+        :type data_string: str
+        :return: A nested list where the first inner list contains the column headers (dictionary keys),
+                 and subsequent inner lists contain the row values (dictionary values).
+        :rtype: List[List[str]]
+        :raises ValueError: If `data_string` is not a valid serialized list of dictionaries.
+        """
         data = []
         # THIS IS CONFIRMED TO WORK WITH A BLANK DOCUMENT
         if isinstance(data_string, list) or list(data_string):
@@ -386,6 +356,15 @@ class ReplaceMarkersWithTable(ReplaceMarkersInDocx):
 
     @classmethod
     def _populate_table(cls, data: List[List[str]], table: 'Table'):
+        """
+        :param data: A list containing lists of strings, where each
+        inner list represents a row to populate the table with each string being a cell content.
+        :type data: List[List[str]]
+        :param table: The table object to be populated with data.
+        :type table: Table
+        :return: The populated table object after inserting the data.
+        :rtype: Table
+        """
         # THIS IS CONFIRMED TO WORK WITH A BLANK DOCUMENT
         for row_index, row_content in enumerate(data):
             for col_index, cell_content in enumerate(row_content):
@@ -401,11 +380,30 @@ class ReplaceMarkersWithTable(ReplaceMarkersInDocx):
         parent_element.getparent().remove(parent_element)
         parent_element._p = parent_element._element = None
 
-    def _handle_table_replacement(self, replacement_text, paragraph):
+    def _handle_table_replacement(self, replacement_text, paragraph, **kwargs):
+        """
+        :param replacement_text: The text to be replaced with a table.
+        :type replacement_text: str
+        :param paragraph: The paragraph that contains the marker for table replacement.
+        :type paragraph: object
+        :param kwargs: Additional keyword arguments to customize the table attributes,
+        such as style, number of rows, and columns.
+        :type kwargs: dict
+        :return: A tuple containing the updated replacement text (table)
+        and the updated paragraph (set to None).
+        :rtype: tuple
+        """
+
         data = self._flatten_data_for_table(replacement_text)
+        table_attr = {
+            'style': kwargs.get('table_style', 'Table Grid'),
+            'rows': kwargs.get('row_num', len(data)),
+            'cols': kwargs.get('col_num', len(data[0]))
+        }
         self._remove_element_manual(paragraph)
+
         # FIXME: this works fine, but the table is placed in the incorrect spot...
-        blank_table = self.Document.add_table(cols=3, rows=len(data) + 1, style='Table Grid')
+        blank_table = self.Document.add_table(** table_attr)
         self._logger.warning("it is possible that the table was added to the end of the document,"
                              " not in its markers place...")
 
@@ -416,11 +414,16 @@ class ReplaceMarkersWithTable(ReplaceMarkersInDocx):
 
     def _replace_matched_marker(self, paragraph, marker, marker_pattern):
         """
-        Replace the text matched with the marker in the paragraph using the information from the info dictionary.
-         If the marker corresponds to 'Document_Number', set the alignment of the paragraph to center and prepend a tab
-          to the replacement text.
-          Finally, update the paragraph text by substituting the marker with the replacement text
-          after removing any leading or trailing whitespaces.
+        Replace a matched marker in a paragraph with the corresponding replacement text.
+
+        :param paragraph: The paragraph object in which the marker is to be replaced.
+        :type paragraph: docx.text.Paragraph
+        :param marker: The marker string that has been matched and needs to be replaced.
+        :type marker: str
+        :param marker_pattern: The regular expression pattern for the marker.
+        :type marker_pattern: re.Pattern
+        :return: None. The method modifies the paragraph text in place.
+        :rtype: None
         """
         replacement_text = str(self.info_dict[marker[1:-1]]).strip()
         replacement_text, paragraph = self._handle_marker_edge_case(marker, paragraph, replacement_text)

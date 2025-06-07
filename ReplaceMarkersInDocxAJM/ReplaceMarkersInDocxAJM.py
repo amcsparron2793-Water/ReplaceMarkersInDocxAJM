@@ -288,9 +288,9 @@ class ReplaceMarkersInDocx:
 
 
 # TODO: should this subclass ReplaceMarkersInDocx? or make it a part of ReplaceMarkersInDocx?
-class TableReplace(ReplaceMarkersInDocx):
+class ReplaceMarkersWithTable(ReplaceMarkersInDocx):
     """
-    class TableReplace(ReplaceMarkersInDocx):
+    class ReplaceMarkersWithTable(ReplaceMarkersInDocx):
         Represents a class that handles table replacements in a docx document,
          extending functionality from ReplaceMarkersInDocx.
          Includes methods to manage table data, manipulate paragraphs, and standardize styles.
